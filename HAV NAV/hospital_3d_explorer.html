@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HAV NAV — 3D Hospital Navigation Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-page: #F4F8FC;
+      --panel-bg: #FFFFFF;
+      --primary-blue: #2563EB;
+      --secondary-blue: #60A5FA;
+      --soft-blue: #DBEAFE;
+      --text-primary: #16324F;
+      --text-muted: #64748B;
+      --border-color: #E2E8F0;
+      --shadow-sm: 0 1px 3px rgba(22, 50, 79, 0.05);
+      --shadow-md: 0 4px 12px -2px rgba(22, 50, 79, 0.08);
+      --shadow-lg: 0 10px 25px -3px rgba(22, 50, 79, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: block;
+    }
+
+    /* Top Navigation Bar */
+    header.app-header {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      height: 56px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--primary-blue);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.5px;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 17px;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary-blue);
+      background: var(--soft-blue);
+      padding: 3px 8px;
+      border-radius: 20px;
+      margin-left: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-header {
+      background: #F8FAFC;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-header:hover {
+      background: var(--soft-blue);
+      border-color: var(--secondary-blue);
+      color: var(--primary-blue);
+    }
+
+    .btn-header.active {
+      background: var(--primary-blue);
+      color: #FFFFFF;
+      border-color: var(--primary-blue);
+    }
+
+    /* Left Sidebar: Navigation & Controls */
+    aside.sidebar {
+      position: absolute;
+      top: 84px;
+      left: 20px;
+      width: 340px;
+      max-height: calc(100vh - 104px);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 18px;
+      gap: 16px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      height: 38px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .accessibility-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #F8FAFC;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .accessibility-toggle input[type="checkbox"] {
+      accent-color: var(--primary-blue);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* Route Feedback Banner */
+    .route-card {
+      background: #F8FAFC;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .route-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge-demo {
+      background: var(--primary-blue);
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 6px;
+      border-radius: 4px;
+    }
+
+    .route-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .stat-chip {
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stat-chip.highlight {
+      background: var(--soft-blue);
+      border-color: var(--secondary-blue);
+      color: var(--primary-blue);
+    }
+
+    .stat-chip.accessible {
+      background: #DCFCE7;
+      border-color: #86EFAC;
+      color: #166534;
+    }
+
+    /* Playback controls */
+    .playback-controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      height: 38px;
+      background: var(--primary-blue);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      background: #1D4ED8;
+    }
+
+    .btn-outline {
+      height: 38px;
+      padding: 0 12px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-outline:hover {
+      background: #F1F5F9;
+      border-color: #CBD5E1;
+    }
+
+    .btn-outline.danger {
+      color: #DC2626;
+    }
+    .btn-outline.danger:hover {
+      background: #FEF2F2;
+      border-color: #FCA5A5;
+    }
+
+    /* Turn-by-Turn step list */
+    .step-list {
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: #FFFFFF;
+    }
+
+    .step-item {
+      padding: 8px 10px;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 11px;
+      line-height: 1.4;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .step-item:last-child {
+      border-bottom: none;
+    }
+
+    .step-item.active {
+      background: var(--soft-blue);
+      font-weight: 600;
+      color: var(--primary-blue);
+    }
+
+    .step-num {
+      background: #E2E8F0;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 9px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-item.active .step-num {
+      background: var(--primary-blue);
+      color: #FFFFFF;
+    }
+
+    /* Right Floor Switcher Floating Card */
+    .floor-widget {
+      position: absolute;
+      top: 84px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      z-index: 10;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 160px;
+    }
+
+    .floor-widget-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .floor-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 34px;
+      padding: 0 10px;
+      background: #F8FAFC;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+    }
+
+    .floor-pill:hover {
+      background: var(--soft-blue);
+      color: var(--primary-blue);
+      border-color: var(--secondary-blue);
+    }
+
+    .floor-pill.active {
+      background: var(--primary-blue);
+      color: #FFFFFF;
+      border-color: var(--primary-blue);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .floor-badge {
+      font-size: 9px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.06);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    .floor-pill.active .floor-badge {
+      background: rgba(255,255,255,0.25);
+      color: #FFFFFF;
+    }
+
+    /* Bottom Inspection Bar (Floor Separation & View Modes) */
+    .bottom-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      z-index: 10;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .view-mode-group {
+      display: flex;
+      gap: 6px;
+      border-right: 1px solid var(--border-color);
+      padding-right: 18px;
+    }
+
+    .btn-toggle {
+      height: 32px;
+      padding: 0 12px;
+      background: #F8FAFC;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-toggle:hover {
+      background: var(--soft-blue);
+      color: var(--primary-blue);
+    }
+
+    .btn-toggle.active {
+      background: var(--primary-blue);
+      color: #FFFFFF;
+      border-color: var(--primary-blue);
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .slider-container input[type="range"] {
+      width: 110px;
+      accent-color: var(--primary-blue);
+      cursor: pointer;
+    }
+
+    /* Camera Follow Pill */
+    #resume-follow-btn {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary-blue);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      z-index: 10;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.04); }
+    }
+
+    /* Responsive mobile tweaks */
+    @media (max-width: 820px) {
+      aside.sidebar {
+        width: calc(100vw - 40px);
+        max-height: 48vh;
+        top: auto;
+        bottom: 74px;
+        left: 20px;
+      }
+      .floor-widget {
+        top: 80px;
+        right: 20px;
+      }
+      .bottom-bar {
+        bottom: 12px;
+        padding: 6px 12px;
+        gap: 10px;
+      }
+      .view-mode-group {
+        padding-right: 10px;
+      }
+    }
+  </style>
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">H</div>
+      <div class="brand-title">HAV NAV</div>
+      <span class="brand-badge">Hospital 3D Explorer</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn-header" id="roof-toggle-btn" title="Toggle Roof Visibility">
+        <span>Roof:</span> <strong id="roof-status-text">Visible</strong>
+      </button>
+      <button class="btn-header" id="glass-toggle-btn" title="Toggle Exterior Glazing">
+        <span>Façade:</span> <strong id="glass-status-text">Tinted</strong>
+      </button>
+      <button class="btn-header" id="reset-cam-btn" title="Reset Camera View">
+        Reset View
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Sidebar (Wayfinding & Demo Playback) -->
+  <aside class="sidebar">
+    <div class="section-title">
+      <span>Navigation Route</span>
+      <span class="badge-demo">Demo Mode</span>
+    </div>
+
+    <div class="form-group">
+      <label for="start-select">Starting Point</label>
+      <select id="start-select">
+        <optgroup label="Campus & Parking">
+          <option value="n-G-accessible-parking">Accessible Parking (North Bay)</option>
+          <option value="n-G-visitor-parking">Visitor Parking (North Lot)</option>
+          <option value="n-G-dropoff">Drop-Off Canopy</option>
+          <option value="n-G-ambulance-bay">Ambulance Bay (Emergency)</option>
+        </optgroup>
+        <optgroup label="Ground Floor (G)">
+          <option value="n-G-main-entrance" selected>Main Entrance Lobby</option>
+          <option value="n-G-reception">Central Reception Desk</option>
+          <option value="n-G-triage">Emergency Triage</option>
+          <option value="n-G-pharmacy">Outpatient Pharmacy</option>
+          <option value="n-G-mri">MRI & CT Diagnostics</option>
+        </optgroup>
+        <optgroup label="Level 1 (L1)">
+          <option value="n-F1-consultation">Consultation Suites (L1)</option>
+          <option value="n-F1-pediatrics">Pediatric Clinic (L1)</option>
+        </optgroup>
+        <optgroup label="Level 2 (L2)">
+          <option value="n-F2-cardiology">Cardiology Center (L2)</option>
+          <option value="n-F2-icu">Intensive Care Unit (L2)</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="dest-select">Destination</label>
+      <select id="dest-select">
+        <optgroup label="Level 2 (L2)">
+          <option value="n-F2-cardiology" selected>L2 — Cardiology Center (Room 204)</option>
+          <option value="n-F2-icu">L2 — Intensive Care Unit (ICU)</option>
+          <option value="n-F2-ot1">L2 — Operating Theater 1</option>
+        </optgroup>
+        <optgroup label="Level 3 (L3)">
+          <option value="n-F3-pediatrics">L3 — Patient Rooms & Recovery (Ward 302)</option>
+          <option value="n-F3-oncology">L3 — Oncology Day Ward</option>
+        </optgroup>
+        <optgroup label="Level 1 (L1)">
+          <option value="n-F1-consultation">L1 — Consultation Suite 102</option>
+          <option value="n-F1-pediatrics">L1 — Outpatient Clinic 106</option>
+        </optgroup>
+        <optgroup label="Ground Floor (G)">
+          <option value="n-G-pharmacy">G — Pharmacy & Dispensary</option>
+          <option value="n-G-radiology">G — Radiology / X-Ray</option>
+          <option value="n-G-emergency">G — Emergency Trauma</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="accessibility-toggle" id="acc-toggle-container">
+      <label for="acc-checkbox" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 16px;">♿</span> Step-Free Accessible Route
+      </label>
+      <input type="checkbox" id="acc-checkbox" checked>
+    </div>
+
+    <!-- Active Route Card -->
+    <div class="route-card" id="route-card">
+      <div class="route-header">
+        <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Route Computed</span>
+        <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);" id="current-floor-indicator">Floor: G</span>
+      </div>
+
+      <div class="route-stats">
+        <div class="stat-chip highlight" id="est-dist-chip">est. 65 m</div>
+        <div class="stat-chip highlight" id="est-time-chip">est. 2 min</div>
+        <div class="stat-chip accessible" id="acc-chip">Step-Free</div>
+      </div>
+
+      <div style="width: 100%; height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; margin: 4px 0;">
+        <div id="route-progress-bar" style="width: 0%; height: 100%; background: var(--primary-blue); transition: width 0.1s linear;"></div>
+      </div>
+
+      <!-- Playback buttons -->
+      <div class="playback-controls">
+        <button class="btn-primary" id="play-pause-btn">
+          <span id="play-btn-text">Start Walk</span>
+        </button>
+        <button class="btn-outline" id="restart-btn" title="Restart route">
+          ↺
+        </button>
+        <button class="btn-outline danger" id="reset-route-btn" title="Reset navigation">
+          Reset
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+        <span>Playback Speed:</span>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn-header" style="padding: 2px 6px; font-size: 10px;" id="speed-05">0.5x</button>
+          <button class="btn-header active" style="padding: 2px 6px; font-size: 10px;" id="speed-10">1.0x</button>
+          <button class="btn-header" style="padding: 2px 6px; font-size: 10px;" id="speed-20">2.0x</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step Instructions -->
+    <div class="section-title">Turn-By-Turn Steps</div>
+    <div class="step-list" id="steps-container"></div>
+  </aside>
+
+  <!-- Right Persistent Floor Selectors (Strict Limit: 4 Floors) -->
+  <div class="floor-widget">
+    <div class="floor-widget-title">Hospital Levels</div>
+    <button class="floor-pill" data-floor="L3" id="floor-btn-L3">
+      <span>L3 Patient Rooms</span>
+      <span class="floor-badge">4F</span>
+    </button>
+    <button class="floor-pill" data-floor="L2" id="floor-btn-L2">
+      <span>L2 Surgery & ICU</span>
+      <span class="floor-badge">3F</span>
+    </button>
+    <button class="floor-pill" data-floor="L1" id="floor-btn-L1">
+      <span>L1 Consultation</span>
+      <span class="floor-badge">2F</span>
+    </button>
+    <button class="floor-pill active" data-floor="G" id="floor-btn-G">
+      <span>G Emergency</span>
+      <span class="floor-badge">1F</span>
+    </button>
+  </div>
+
+  <!-- Bottom Bar: Floor Separation & View Modes -->
+  <div class="bottom-bar">
+    <div class="view-mode-group">
+      <button class="btn-toggle active" id="mode-assembled-btn">Assembled</button>
+      <button class="btn-toggle" id="mode-exploded-btn">Exploded View</button>
+      <button class="btn-toggle" id="mode-solo-btn">Solo Floor</button>
+    </div>
+
+    <div class="slider-container" id="separation-slider-container">
+      <label for="spacing-slider">Floor Spacing:</label>
+      <input type="range" id="spacing-slider" min="0" max="25" step="1" value="0">
+      <span id="spacing-val-text" style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">0 m</span>
+    </div>
+  </div>
+
+  <!-- Resume Camera Follow Floating Button -->
+  <button id="resume-follow-btn">
+    <span>📍</span> Resume Follow Mode
+  </button>
+
+  <script>
+    /* =========================================================================
+       HAV NAV 3D HOSPITAL NAVIGATOR ENGINE (Three.js WebGL)
+       Clean light hospital theme, strictly 4 occupied levels (G, L1, L2, L3),
+       animated continuous polyline route, campus exterior, and floor separation.
+       ========================================================================= */
+
+    // Strict 4 Occupied Floors Specification
+    const FLOOR_DATA = [
+      { id: 'G',  level: 0, baseY: 0,  name: 'G — Emergency & Diagnostics', short: 'G', color: 0xDBEAFE },
+      { id: 'L1', level: 1, baseY: 12, name: 'L1 — Consultation & Outpatient', short: 'L1', color: 0xEFF6FF },
+      { id: 'L2', level: 2, baseY: 24, name: 'L2 — Surgery & Intensive Care', short: 'L2', color: 0xEFF6FF },
+      { id: 'L3', level: 3, baseY: 36, name: 'L3 — Patient Rooms & Recovery', short: 'L3', color: 0xEFF6FF }
+    ];
+
+    // State
+    const state = {
+      viewMode: 'assembled', // 'assembled' | 'exploded' | 'solo'
+      activeFloorId: 'G',
+      floorSpacing: 0,
+      roofState: 'visible', // 'visible' | 'faded' | 'hidden'
+      glassState: 'tinted', // 'tinted' | 'transparent' | 'hidden'
+      simRunning: false,
+      simProgress: 0, // 0.0 to 1.0 along route polyline
+      simSpeed: 1.0,
+      cameraFollow: false,
+      userInteracting: false,
+      stepFreeOnly: true,
+      currentRoute: null
+    };
+
+    // Scene & Renderer Setup
+    const canvas = document.getElementById('webgl-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xF4F8FC);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 800);
+    camera.position.set(70, 75, 100);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't clip ground
+    controls.target.set(0, 16, 0);
+
+    // Track user camera interaction to suspend follow mode
+    controls.addEventListener('start', () => {
+      if (state.simRunning && state.cameraFollow) {
+        state.cameraFollow = false;
+        document.getElementById('resume-follow-btn').style.display = 'flex';
+      }
+    });
+
+    // Lighting (Soft Daylight Hospital Ambient)
+    const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.75);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xFDFBF7, 0.85);
+    sunLight.position.set(90, 140, 80);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 10;
+    sunLight.shadow.camera.far = 300;
+    const shadowD = 70;
+    sunLight.shadow.camera.left = -shadowD;
+    sunLight.shadow.camera.right = shadowD;
+    sunLight.shadow.camera.top = shadowD;
+    sunLight.shadow.camera.bottom = -shadowD;
+    sunLight.shadow.bias = -0.0005;
+    scene.add(sunLight);
+
+    const skyLight = new THREE.HemisphereLight(0xDBEAFE, 0xEDF2F7, 0.35);
+    scene.add(skyLight);
+
+    // Groups
+    const campusGroup = new THREE.Group();
+    scene.add(campusGroup);
+
+    const buildingGroup = new THREE.Group();
+    scene.add(buildingGroup);
+
+    const floorGroups = {};
+    const floorMeshes = {};
+    const roofGroup = new THREE.Group();
+    buildingGroup.add(roofGroup);
+
+    /* =========================================================================
+       1. CAMPUS EXTERIOR & PARKING
+       ========================================================================= */
+    function buildCampus() {
+      // Ground plane
+      const groundGeo = new THREE.PlaneGeometry(350, 350);
+      const groundMat = new THREE.MeshStandardMaterial({ color: 0xEAF0F6, roughness: 0.95 });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      campusGroup.add(ground);
+
+      // Approach Road (Asphalt)
+      const roadGeo = new THREE.PlaneGeometry(240, 18);
+      const roadMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.85 });
+      const road = new THREE.Mesh(roadGeo, roadMat);
+      road.rotation.x = -Math.PI / 2;
+      road.position.set(0, 0.05, 52);
+      road.receiveShadow = true;
+      campusGroup.add(road);
+
+      // Road dashed markings
+      const dashMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+      for (let x = -100; x <= 100; x += 14) {
+        const dash = new THREE.Mesh(new THREE.PlaneGeometry(7, 0.45), dashMat);
+        dash.rotation.x = -Math.PI / 2;
+        dash.position.set(x, 0.07, 52);
+        campusGroup.add(dash);
+      }
+
+      // Drop-off lane & Main Plaza Sidewalk
+      const plazaGeo = new THREE.PlaneGeometry(120, 24);
+      const plazaMat = new THREE.MeshStandardMaterial({ color: 0xF1F5F9, roughness: 0.7 });
+      const plaza = new THREE.Mesh(plazaGeo, plazaMat);
+      plaza.rotation.x = -Math.PI / 2;
+      plaza.position.set(0, 0.08, 32);
+      plaza.receiveShadow = true;
+      campusGroup.add(plaza);
+
+      // Drop-off canopy
+      const canopyGeo = new THREE.BoxGeometry(28, 0.8, 14);
+      const canopyMat = new THREE.MeshStandardMaterial({ color: 0x2563EB, metalness: 0.1, roughness: 0.4 });
+      const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+      canopy.position.set(-16, 6.5, 23);
+      canopy.castShadow = true;
+      campusGroup.add(canopy);
+
+      // Canopy steel pillars
+      const pillarMat = new THREE.MeshStandardMaterial({ color: 0x64748B, metalness: 0.7, roughness: 0.3 });
+      [-28, -4].forEach(px => {
+        [17, 28].forEach(pz => {
+          const col = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 6.5, 12), pillarMat);
+          col.position.set(px, 3.25, pz);
+          col.castShadow = true;
+          campusGroup.add(col);
+        });
+      });
+
+      // 3D Canopy Signage "HAV NAV HOSPITAL"
+      const signBoard = new THREE.Mesh(new THREE.BoxGeometry(16, 1.4, 0.3), new THREE.MeshStandardMaterial({ color: 0xFFFFFF }));
+      signBoard.position.set(-16, 7.6, 29.8);
+      campusGroup.add(signBoard);
+
+      // Visitor Parking Bays (Stalls)
+      const stallMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 });
+      const visitorLot = new THREE.Mesh(new THREE.PlaneGeometry(45, 14), stallMat);
+      visitorLot.rotation.x = -Math.PI / 2;
+      visitorLot.position.set(28, 0.06, 32);
+      campusGroup.add(visitorLot);
+
+      // Stall white striping
+      const stripeMat = new THREE.MeshBasicMaterial({ color: 0xE2E8F0 });
+      for (let sx = 8; sx <= 48; sx += 6) {
+        const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 12), stripeMat);
+        stripe.rotation.x = -Math.PI / 2;
+        stripe.position.set(sx, 0.08, 32);
+        campusGroup.add(stripe);
+      }
+
+      // Accessible Parking Stall (Blue marked bay)
+      const accStall = new THREE.Mesh(new THREE.PlaneGeometry(8, 12), new THREE.MeshStandardMaterial({ color: 0x2563EB, roughness: 0.6 }));
+      accStall.rotation.x = -Math.PI / 2;
+      accStall.position.set(3, 0.07, 32);
+      campusGroup.add(accStall);
+
+      // Ambulance Emergency Bay
+      const ambStall = new THREE.Mesh(new THREE.PlaneGeometry(16, 14), new THREE.MeshStandardMaterial({ color: 0xDC2626, roughness: 0.7 }));
+      ambStall.rotation.x = -Math.PI / 2;
+      ambStall.position.set(-44, 0.06, 32);
+      campusGroup.add(ambStall);
+
+      // Low decorative trees & greenery
+      const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x78350F, roughness: 0.9 });
+      const treeFoliageMat = new THREE.MeshStandardMaterial({ color: 0x34D399, roughness: 0.6 });
+      const treeCoords = [
+        [-55, 18], [-55, 45], [45, 18], [55, 45], [-35, 66], [10, 66], [40, 66]
+      ];
+      treeCoords.forEach(([tx, tz]) => {
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 3.5, 8), treeTrunkMat);
+        trunk.position.set(tx, 1.75, tz);
+        trunk.castShadow = true;
+        campusGroup.add(trunk);
+
+        const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(2.4, 1), treeFoliageMat);
+        foliage.position.set(tx, 4.8, tz);
+        foliage.castShadow = true;
+        campusGroup.add(foliage);
+      });
+    }
+
+    /* =========================================================================
+       2. EXACT FOUR OCCUPIED FLOORS ARCHITECTURE
+       ========================================================================= */
+    const BUILDING_W = 86;
+    const BUILDING_D = 44;
+    const FLOOR_H = 10;
+
+    function buildFloors() {
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.5, metalness: 0.05 });
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.6 });
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: 0x93C5FD,
+        transparent: true,
+        opacity: 0.28,
+        roughness: 0.1,
+        metalness: 0.1,
+        transmission: 0.6,
+        ior: 1.45
+      });
+
+      FLOOR_DATA.forEach((floor, idx) => {
+        const grp = new THREE.Group();
+        grp.position.set(0, floor.baseY, 0);
+        buildingGroup.add(grp);
+        floorGroups[floor.id] = grp;
+
+        // Floor slab
+        const slab = new THREE.Mesh(new THREE.BoxGeometry(BUILDING_W, 0.8, BUILDING_D), slabMat);
+        slab.position.set(0, 0.4, 0);
+        slab.receiveShadow = true;
+        grp.add(slab);
+
+        // Central traversable corridor (subtle blue tile)
+        const corr = new THREE.Mesh(new THREE.BoxGeometry(BUILDING_W - 8, 0.05, 8), new THREE.MeshStandardMaterial({ color: 0xDBEAFE, roughness: 0.4 }));
+        corr.position.set(0, 0.83, 0);
+        grp.add(corr);
+
+        // North & South Room Partition Walls
+        for (let x = -36; x <= 36; x += 18) {
+          // North room division
+          const wallN = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.5, 14), wallMat);
+          wallN.position.set(x, 3.0, -12);
+          wallN.castShadow = true;
+          grp.add(wallN);
+
+          // South room division
+          const wallS = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.5, 14), wallMat);
+          wallS.position.set(x, 3.0, 12);
+          wallS.castShadow = true;
+          grp.add(wallS);
+        }
+
+        // Corridor side walls with door openings
+        [-30, -12, 6, 24].forEach(wx => {
+          const doorWallN = new THREE.Mesh(new THREE.BoxGeometry(10, 4.5, 0.4), wallMat);
+          doorWallN.position.set(wx, 3.0, -4.2);
+          grp.add(doorWallN);
+
+          const doorWallS = new THREE.Mesh(new THREE.BoxGeometry(10, 4.5, 0.4), wallMat);
+          doorWallS.position.set(wx, 3.0, 4.2);
+          grp.add(doorWallS);
+        });
+
+        // Vertically Aligned Elevator Core (x: -16, z: 0)
+        const liftShaft = new THREE.Mesh(new THREE.BoxGeometry(6, 6.5, 6), new THREE.MeshStandardMaterial({ color: 0x2563EB, roughness: 0.3 }));
+        liftShaft.position.set(-16, 3.65, 0);
+        grp.add(liftShaft);
+
+        // Vertically Aligned Stairwell Core (x: 16, z: 0)
+        const stairCore = new THREE.Mesh(new THREE.BoxGeometry(6, 6.5, 6), new THREE.MeshStandardMaterial({ color: 0x64748B, roughness: 0.5 }));
+        stairCore.position.set(16, 3.65, 0);
+        grp.add(stairCore);
+
+        // Exterior Glazing Façade
+        const glassNorth = new THREE.Mesh(new THREE.BoxGeometry(BUILDING_W, 6.0, 0.2), glassMat);
+        glassNorth.position.set(0, 3.8, -BUILDING_D / 2);
+        grp.add(glassNorth);
+
+        const glassSouth = new THREE.Mesh(new THREE.BoxGeometry(BUILDING_W, 6.0, 0.2), glassMat);
+        glassSouth.position.set(0, 3.8, BUILDING_D / 2);
+        grp.add(glassSouth);
+
+        floorMeshes[floor.id] = { glass: [glassNorth, glassSouth] };
+      });
+
+      // Roof (Faded or toggleable, not counted as occupied floor)
+      const roofSlab = new THREE.Mesh(new THREE.BoxGeometry(BUILDING_W, 1.2, BUILDING_D), new THREE.MeshStandardMaterial({ color: 0xE2E8F0, roughness: 0.7 }));
+      roofSlab.position.set(0, 48.6, 0);
+      roofSlab.castShadow = true;
+      roofGroup.add(roofSlab);
+
+      // HVAC / Solar panels on roof
+      const hvac = new THREE.Mesh(new THREE.BoxGeometry(12, 3, 10), new THREE.MeshStandardMaterial({ color: 0x94A3B8 }));
+      hvac.position.set(10, 50.5, 0);
+      roofGroup.add(hvac);
+    }
+
+    /* =========================================================================
+       3. NAVIGATION GRAPH & A* / DIJKSTRA ENGINE
+       ========================================================================= */
+    const WAYPOINTS = {
+      // Outdoor campus
+      'n-G-accessible-parking': { id: 'n-G-accessible-parking', floor: 'G', x: 3, y: 0.8, z: 32, name: 'Accessible Parking (North Bay)' },
+      'n-G-visitor-parking':    { id: 'n-G-visitor-parking',    floor: 'G', x: 28, y: 0.8, z: 32, name: 'Visitor Parking (North Lot)' },
+      'n-G-dropoff':            { id: 'n-G-dropoff',            floor: 'G', x: -16, y: 0.8, z: 23, name: 'Drop-off Canopy' },
+      'n-G-ambulance-bay':      { id: 'n-G-ambulance-bay',      floor: 'G', x: -44, y: 0.8, z: 32, name: 'Ambulance Bay' },
+      'n-G-walkway-plaza':      { id: 'n-G-walkway-plaza',      floor: 'G', x: -16, y: 0.8, z: 18, name: 'Plaza Sidewalk' },
+      'n-G-main-entrance':      { id: 'n-G-main-entrance',      floor: 'G', x: -16, y: 0.8, z: 4.2, name: 'Main Entrance Lobby' },
+
+      // Ground Floor (G)
+      'n-G-corr-west':          { id: 'n-G-corr-west',          floor: 'G', x: -28, y: 0.8, z: 0, name: 'G West Corridor' },
+      'n-G-lift-main':          { id: 'n-G-lift-main',          floor: 'G', x: -16, y: 0.8, z: 0, name: 'G Elevator Lift' },
+      'n-G-reception':          { id: 'n-G-reception',          floor: 'G', x: 0, y: 0.8, z: 0, name: 'Central Reception' },
+      'n-G-stair-main':         { id: 'n-G-stair-main',         floor: 'G', x: 16, y: 0.8, z: 0, name: 'G Main Stairwell' },
+      'n-G-corr-east':          { id: 'n-G-corr-east',          floor: 'G', x: 28, y: 0.8, z: 0, name: 'G East Corridor' },
+      'n-G-pharmacy':           { id: 'n-G-pharmacy',           floor: 'G', x: 28, y: 0.8, z: -10, name: 'Pharmacy & Dispensary' },
+      'n-G-radiology':          { id: 'n-G-radiology',          floor: 'G', x: 0, y: 0.8, z: -10, name: 'Radiology / X-Ray' },
+      'n-G-triage':             { id: 'n-G-triage',             floor: 'G', x: -28, y: 0.8, z: 10, name: 'Emergency Triage' },
+      'n-G-mri':                { id: 'n-G-mri',                floor: 'G', x: -28, y: 0.8, z: -10, name: 'MRI Diagnostics' },
+      'n-G-emergency':          { id: 'n-G-emergency',          floor: 'G', x: -38, y: 0.8, z: 0, name: 'Emergency Trauma' },
+
+      // Level 1 (L1)
+      'n-F1-lift-main':         { id: 'n-F1-lift-main',         floor: 'L1', x: -16, y: 12.8, z: 0, name: 'L1 Elevator Lift' },
+      'n-F1-stair-main':        { id: 'n-F1-stair-main',        floor: 'L1', x: 16, y: 12.8, z: 0, name: 'L1 Main Stairwell' },
+      'n-F1-reception':         { id: 'n-F1-reception',         floor: 'L1', x: 0, y: 12.8, z: 0, name: 'L1 Outpatient Waiting' },
+      'n-F1-consultation':      { id: 'n-F1-consultation',      floor: 'L1', x: -28, y: 12.8, z: -10, name: 'Consultation Suite 102' },
+      'n-F1-pediatrics':        { id: 'n-F1-pediatrics',        floor: 'L1', x: 28, y: 12.8, z: 10, name: 'Pediatrics Clinic 106' },
+
+      // Level 2 (L2)
+      'n-F2-lift-main':         { id: 'n-F2-lift-main',         floor: 'L2', x: -16, y: 24.8, z: 0, name: 'L2 Elevator Lift' },
+      'n-F2-stair-main':        { id: 'n-F2-stair-main',        floor: 'L2', x: 16, y: 24.8, z: 0, name: 'L2 Main Stairwell' },
+      'n-F2-reception':         { id: 'n-F2-reception',         floor: 'L2', x: 0, y: 24.8, z: 0, name: 'L2 Surgery Reception' },
+      'n-F2-cardiology':        { id: 'n-F2-cardiology',        floor: 'L2', x: -28, y: 24.8, z: 10, name: 'Cardiology Center (204)' },
+      'n-F2-icu':               { id: 'n-F2-icu',               floor: 'L2', x: 28, y: 24.8, z: -10, name: 'Intensive Care Unit (ICU)' },
+      'n-F2-ot1':               { id: 'n-F2-ot1',               floor: 'L2', x: 28, y: 24.8, z: 10, name: 'Operating Theater 1' },
+
+      // Level 3 (L3)
+      'n-F3-lift-main':         { id: 'n-F3-lift-main',         floor: 'L3', x: -16, y: 36.8, z: 0, name: 'L3 Elevator Lift' },
+      'n-F3-stair-main':        { id: 'n-F3-stair-main',        floor: 'L3', x: 16, y: 36.8, z: 0, name: 'L3 Main Stairwell' },
+      'n-F3-reception':         { id: 'n-F3-reception',         floor: 'L3', x: 0, y: 36.8, z: 0, name: 'L3 Inpatient Nurses Station' },
+      'n-F3-pediatrics':        { id: 'n-F3-pediatrics',        floor: 'L3', x: -28, y: 36.8, z: 10, name: 'Patient Rooms & Recovery (302)' },
+      'n-F3-oncology':          { id: 'n-F3-oncology',          floor: 'L3', x: 28, y: 36.8, z: -10, name: 'Oncology Day Ward' }
+    };
+
+    const EDGES = [
+      // Campus Walkways
+      { from: 'n-G-accessible-parking', to: 'n-G-walkway-plaza', type: 'corridor', acc: true },
+      { from: 'n-G-visitor-parking', to: 'n-G-walkway-plaza', type: 'corridor', acc: true },
+      { from: 'n-G-dropoff', to: 'n-G-walkway-plaza', type: 'corridor', acc: true },
+      { from: 'n-G-ambulance-bay', to: 'n-G-walkway-plaza', type: 'corridor', acc: true },
+      { from: 'n-G-walkway-plaza', to: 'n-G-main-entrance', type: 'corridor', acc: true },
+      { from: 'n-G-main-entrance', to: 'n-G-lift-main', type: 'corridor', acc: true },
+      { from: 'n-G-main-entrance', to: 'n-G-reception', type: 'corridor', acc: true },
+
+      // Floor G Corridor & Rooms
+      { from: 'n-G-lift-main', to: 'n-G-corr-west', type: 'corridor', acc: true },
+      { from: 'n-G-corr-west', to: 'n-G-triage', type: 'corridor', acc: true },
+      { from: 'n-G-corr-west', to: 'n-G-mri', type: 'corridor', acc: true },
+      { from: 'n-G-corr-west', to: 'n-G-emergency', type: 'corridor', acc: true },
+      { from: 'n-G-lift-main', to: 'n-G-reception', type: 'corridor', acc: true },
+      { from: 'n-G-reception', to: 'n-G-stair-main', type: 'corridor', acc: true },
+      { from: 'n-G-reception', to: 'n-G-radiology', type: 'corridor', acc: true },
+      { from: 'n-G-stair-main', to: 'n-G-corr-east', type: 'corridor', acc: true },
+      { from: 'n-G-corr-east', to: 'n-G-pharmacy', type: 'corridor', acc: true },
+
+      // Level 1 Corridor & Rooms
+      { from: 'n-F1-lift-main', to: 'n-F1-reception', type: 'corridor', acc: true },
+      { from: 'n-F1-reception', to: 'n-F1-stair-main', type: 'corridor', acc: true },
+      { from: 'n-F1-lift-main', to: 'n-F1-consultation', type: 'corridor', acc: true },
+      { from: 'n-F1-stair-main', to: 'n-F1-pediatrics', type: 'corridor', acc: true },
+
+      // Level 2 Corridor & Rooms
+      { from: 'n-F2-lift-main', to: 'n-F2-reception', type: 'corridor', acc: true },
+      { from: 'n-F2-reception', to: 'n-F2-stair-main', type: 'corridor', acc: true },
+      { from: 'n-F2-lift-main', to: 'n-F2-cardiology', type: 'corridor', acc: true },
+      { from: 'n-F2-stair-main', to: 'n-F2-icu', type: 'corridor', acc: true },
+      { from: 'n-F2-stair-main', to: 'n-F2-ot1', type: 'corridor', acc: true },
+
+      // Level 3 Corridor & Rooms
+      { from: 'n-F3-lift-main', to: 'n-F3-reception', type: 'corridor', acc: true },
+      { from: 'n-F3-reception', to: 'n-F3-stair-main', type: 'corridor', acc: true },
+      { from: 'n-F3-lift-main', to: 'n-F3-pediatrics', type: 'corridor', acc: true },
+      { from: 'n-F3-stair-main', to: 'n-F3-oncology', type: 'corridor', acc: true },
+
+      // Vertical Elevators (Accessible across all 4 levels)
+      { from: 'n-G-lift-main', to: 'n-F1-lift-main', type: 'lift', acc: true },
+      { from: 'n-F1-lift-main', to: 'n-F2-lift-main', type: 'lift', acc: true },
+      { from: 'n-F2-lift-main', to: 'n-F3-lift-main', type: 'lift', acc: true },
+
+      // Vertical Stairs (Not step-free)
+      { from: 'n-G-stair-main', to: 'n-F1-stair-main', type: 'stairs', acc: false },
+      { from: 'n-F1-stair-main', to: 'n-F2-stair-main', type: 'stairs', acc: false },
+      { from: 'n-F2-stair-main', to: 'n-F3-stair-main', type: 'stairs', acc: false }
+    ];
+
+    // Compute Dijkstra Route
+    function calculateRoute(startId, destId, stepFree) {
+      const dists = {};
+      const prev = {};
+      const pq = [{ id: startId, d: 0 }];
+
+      Object.keys(WAYPOINTS).forEach(k => { dists[k] = Infinity; });
+      dists[startId] = 0;
+
+      while (pq.length > 0) {
+        pq.sort((a, b) => a.d - b.d);
+        const { id, d } = pq.shift();
+        if (id === destId) break;
+        if (d > dists[id]) continue;
+
+        const u = WAYPOINTS[id];
+        EDGES.forEach(edge => {
+          let vId = null;
+          if (edge.from === id) vId = edge.to;
+          else if (edge.to === id) vId = edge.from;
+          if (!vId) return;
+
+          if (stepFree && !edge.acc) return;
+
+          const v = WAYPOINTS[vId];
+          const physicalDist = Math.hypot(u.x - v.x, u.z - v.z) + Math.abs(u.y - v.y);
+          const weight = edge.type === 'lift' ? 14 : physicalDist;
+          const alt = dists[id] + weight;
+
+          if (alt < dists[vId]) {
+            dists[vId] = alt;
+            prev[vId] = { from: id, type: edge.type, acc: edge.acc };
+            pq.push({ id: vId, d: alt });
+          }
+        });
+      }
+
+      if (!prev[destId] && startId !== destId) return null;
+
+      const path = [];
+      let curr = destId;
+      while (curr) {
+        path.unshift(curr);
+        curr = prev[curr] ? prev[curr].from : null;
+      }
+
+      // Calculate total physical meters and steps
+      let totalMeters = 0;
+      const steps = [];
+      for (let i = 0; i < path.length; i++) {
+        const node = WAYPOINTS[path[i]];
+        let text = '';
+        if (i === 0) {
+          text = `Start at ${node.name}`;
+        } else {
+          const prevNode = WAYPOINTS[path[i - 1]];
+          const d = Math.hypot(node.x - prevNode.x, node.z - prevNode.z) + Math.abs(node.y - prevNode.y);
+          totalMeters += d;
+          if (node.floor !== prevNode.floor) {
+            text = `Take Elevator to Floor ${node.floor}`;
+          } else {
+            text = `Walk to ${node.name}`;
+          }
+        }
+        steps.push({ text, floor: node.floor, node });
+      }
+
+      return {
+        path,
+        totalMeters: Math.round(totalMeters),
+        minutes: Math.max(1, Math.round(totalMeters / 40)),
+        steps
+      };
+    }
+
+    /* =========================================================================
+       4. ANIMATED HIGH-CONTRAST ROUTE & WALKER MARKER
+       ========================================================================= */
+    let routeLineMesh = null;
+    let walkerGroup = null;
+    let walkerHalo = null;
+
+    function render3DRoute(routeObj) {
+      if (routeLineMesh) {
+        scene.remove(routeLineMesh);
+        routeLineMesh.geometry.dispose();
+        routeLineMesh = null;
+      }
+
+      if (!routeObj || routeObj.path.length < 2) return;
+
+      const points = [];
+      for (let i = 0; i < routeObj.path.length; i++) {
+        const wp = WAYPOINTS[routeObj.path[i]];
+        // Evaluate dynamic floor Y based on floor separation
+        const floorY = getFloorVisualY(wp.floor);
+        // Elevate slightly (+0.25) above walkable surface to eliminate z-fighting
+        points.push(new THREE.Vector3(wp.x, floorY + (wp.y % 12) + 0.35, wp.z));
+      }
+
+      // Smooth path curve
+      const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.1);
+      const curvePoints = curve.getPoints(Math.max(50, points.length * 15));
+      const tubeGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(curvePoints), 200, 0.4, 8, false);
+
+      const routeMat = new THREE.MeshStandardMaterial({
+        color: 0x2563EB,
+        emissive: 0x1D4ED8,
+        emissiveIntensity: 0.65,
+        roughness: 0.2,
+        metalness: 0.1
+      });
+
+      routeLineMesh = new THREE.Mesh(tubeGeo, routeMat);
+      scene.add(routeLineMesh);
+
+      // Create Walker Marker if not created
+      if (!walkerGroup) {
+        walkerGroup = new THREE.Group();
+        
+        // Central position sphere
+        const markerSphere = new THREE.Mesh(
+          new THREE.SphereGeometry(0.85, 16, 16),
+          new THREE.MeshStandardMaterial({ color: 0x2563EB, emissive: 0x60A5FA, emissiveIntensity: 0.8 })
+        );
+        markerSphere.position.y = 0.85;
+        walkerGroup.add(markerSphere);
+
+        // Direction Arrow Cone
+        const arrowCone = new THREE.Mesh(
+          new THREE.ConeGeometry(0.55, 1.4, 12),
+          new THREE.MeshStandardMaterial({ color: 0xFFFFFF })
+        );
+        arrowCone.rotation.x = Math.PI / 2;
+        arrowCone.position.set(0, 0.85, 1.2);
+        walkerGroup.add(arrowCone);
+
+        // Pulsating Halo
+        const haloGeo = new THREE.RingGeometry(1.2, 1.6, 24);
+        const haloMat = new THREE.MeshBasicMaterial({ color: 0x3B82F6, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+        walkerHalo = new THREE.Mesh(haloGeo, haloMat);
+        walkerHalo.rotation.x = -Math.PI / 2;
+        walkerHalo.position.y = 0.1;
+        walkerGroup.add(walkerHalo);
+
+        scene.add(walkerGroup);
+      }
+
+      walkerGroup.visible = true;
+      updateWalkerPosition(0);
+    }
+
+    function getFloorVisualY(floorId) {
+      const idx = FLOOR_DATA.findIndex(f => f.id === floorId);
+      if (idx === -1) return 0;
+      if (state.viewMode === 'solo') {
+        return state.activeFloorId === floorId ? 0 : 9999; // hidden
+      }
+      return FLOOR_DATA[idx].baseY + (idx * state.floorSpacing);
+    }
+
+    function getPolylinePoint(progress) {
+      if (!state.currentRoute || state.currentRoute.path.length < 2) return null;
+      const pts = [];
+      for (let i = 0; i < state.currentRoute.path.length; i++) {
+        const wp = WAYPOINTS[state.currentRoute.path[i]];
+        const fy = getFloorVisualY(wp.floor);
+        pts.push(new THREE.Vector3(wp.x, fy + (wp.y % 12) + 0.35, wp.z));
+      }
+
+      // Total polyline length
+      let totalLen = 0;
+      const lens = [];
+      for (let i = 1; i < pts.length; i++) {
+        const l = pts[i].distanceTo(pts[i - 1]);
+        lens.push(l);
+        totalLen += l;
+      }
+
+      const targetDist = progress * totalLen;
+      let accum = 0;
+      for (let i = 0; i < lens.length; i++) {
+        if (accum + lens[i] >= targetDist) {
+          const segT = (targetDist - accum) / lens[i];
+          const pos = new THREE.Vector3().lerpVectors(pts[i], pts[i + 1], segT);
+          const tangent = new THREE.Vector3().subVectors(pts[i + 1], pts[i]).normalize();
+          return { pos, tangent, fromFloor: WAYPOINTS[state.currentRoute.path[i]].floor };
+        }
+        accum += lens[i];
+      }
+      return { pos: pts[pts.length - 1], tangent: new THREE.Vector3(0, 0, 1), fromFloor: WAYPOINTS[state.currentRoute.path[pts.length - 1]].floor };
+    }
+
+    function updateWalkerPosition(progress) {
+      if (!walkerGroup) return;
+      const pt = getPolylinePoint(progress);
+      if (!pt) return;
+
+      walkerGroup.position.copy(pt.pos);
+      if (pt.tangent.lengthSq() > 0.001) {
+        walkerGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), pt.tangent);
+      }
+
+      // Update Current Floor Indicator & UI Steps
+      document.getElementById('current-floor-indicator').textContent = `Floor: ${pt.fromFloor}`;
+      document.getElementById('route-progress-bar').style.width = `${Math.round(progress * 100)}%`;
+
+      // Update active turn step
+      if (state.currentRoute && state.currentRoute.steps) {
+        const stepIdx = Math.min(
+          state.currentRoute.steps.length - 1,
+          Math.floor(progress * state.currentRoute.steps.length)
+        );
+        document.querySelectorAll('.step-item').forEach((el, idx) => {
+          el.classList.toggle('active', idx === stepIdx);
+        });
+      }
+
+      // Smooth Camera Follow
+      if (state.cameraFollow && state.simRunning) {
+        const offset = new THREE.Vector3(0, 18, 28);
+        const camTarget = pt.pos.clone().add(offset);
+        camera.position.lerp(camTarget, 0.04);
+        controls.target.lerp(pt.pos, 0.05);
+      }
+    }
+
+    /* =========================================================================
+       5. USER INTERFACE & CONTROLS BINDING
+       ========================================================================= */
+    function refreshRoute() {
+      const startId = document.getElementById('start-select').value;
+      const destId = document.getElementById('dest-select').value;
+      const stepFree = document.getElementById('acc-checkbox').checked;
+
+      const r = calculateRoute(startId, destId, stepFree);
+      state.currentRoute = r;
+      state.simProgress = 0;
+      state.simRunning = false;
+      document.getElementById('play-btn-text').textContent = 'Start Walk';
+
+      if (!r) {
+        document.getElementById('est-dist-chip').textContent = 'No route';
+        document.getElementById('est-time-chip').textContent = 'Blocked';
+        document.getElementById('steps-container').innerHTML = '<div class="step-item" style="color: #DC2626;">No step-free route available. Try unchecking step-free restriction.</div>';
+        if (routeLineMesh) { scene.remove(routeLineMesh); routeLineMesh = null; }
+        if (walkerGroup) walkerGroup.visible = false;
+        return;
+      }
+
+      document.getElementById('est-dist-chip').textContent = `est. ${r.totalMeters} m`;
+      document.getElementById('est-time-chip').textContent = `est. ${r.minutes} min`;
+
+      // Populate Steps
+      const stepsHtml = r.steps.map((s, idx) => `
+        <div class="step-item ${idx === 0 ? 'active' : ''}">
+          <div class="step-num">${idx + 1}</div>
+          <div>${s.text}</div>
+        </div>
+      `).join('');
+      document.getElementById('steps-container').innerHTML = stepsHtml;
+
+      render3DRoute(r);
+    }
+
+    function updateFloorTransforms() {
+      FLOOR_DATA.forEach((floor, idx) => {
+        const grp = floorGroups[floor.id];
+        if (!grp) return;
+
+        if (state.viewMode === 'solo') {
+          if (state.activeFloorId === floor.id) {
+            grp.visible = true;
+            grp.position.set(0, 0, 0); // Focus at eye height
+          } else {
+            grp.visible = false;
+          }
+        } else {
+          grp.visible = true;
+          const targetY = floor.baseY + (idx * state.floorSpacing);
+          grp.position.set(0, targetY, 0);
+        }
+      });
+
+      // Update route line geometry to follow moving floors!
+      if (state.currentRoute) {
+        render3DRoute(state.currentRoute);
+      }
+    }
+
+    // Event Listeners
+    document.getElementById('start-select').addEventListener('change', refreshRoute);
+    document.getElementById('dest-select').addEventListener('change', refreshRoute);
+    document.getElementById('acc-checkbox').addEventListener('change', refreshRoute);
+
+    // Playback buttons
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    playPauseBtn.addEventListener('click', () => {
+      state.simRunning = !state.simRunning;
+      if (state.simRunning) {
+        state.cameraFollow = true;
+        document.getElementById('resume-follow-btn').style.display = 'none';
+        document.getElementById('play-btn-text').textContent = 'Pause';
+      } else {
+        document.getElementById('play-btn-text').textContent = 'Resume';
+      }
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+      state.simProgress = 0;
+      updateWalkerPosition(0);
+      state.simRunning = true;
+      state.cameraFollow = true;
+      document.getElementById('resume-follow-btn').style.display = 'none';
+      document.getElementById('play-btn-text').textContent = 'Pause';
+    });
+
+    document.getElementById('reset-route-btn').addEventListener('click', () => {
+      state.simProgress = 0;
+      state.simRunning = false;
+      state.cameraFollow = false;
+      document.getElementById('resume-follow-btn').style.display = 'none';
+      document.getElementById('play-btn-text').textContent = 'Start Walk';
+      updateWalkerPosition(0);
+    });
+
+    // Speed options
+    document.getElementById('speed-05').addEventListener('click', (e) => {
+      state.simSpeed = 0.5;
+      updateSpeedPills(e.target);
+    });
+    document.getElementById('speed-10').addEventListener('click', (e) => {
+      state.simSpeed = 1.0;
+      updateSpeedPills(e.target);
+    });
+    document.getElementById('speed-20').addEventListener('click', (e) => {
+      state.simSpeed = 2.0;
+      updateSpeedPills(e.target);
+    });
+
+    function updateSpeedPills(activeEl) {
+      ['speed-05', 'speed-10', 'speed-20'].forEach(id => {
+        document.getElementById(id).classList.remove('active');
+      });
+      activeEl.classList.add('active');
+    }
+
+    // Resume Follow Button
+    document.getElementById('resume-follow-btn').addEventListener('click', () => {
+      state.cameraFollow = true;
+      document.getElementById('resume-follow-btn').style.display = 'none';
+    });
+
+    // Floor Switcher Pills (G, L1, L2, L3)
+    ['G', 'L1', 'L2', 'L3'].forEach(fId => {
+      document.getElementById(`floor-btn-${fId}`).addEventListener('click', () => {
+        state.activeFloorId = fId;
+        document.querySelectorAll('.floor-pill').forEach(el => el.classList.remove('active'));
+        document.getElementById(`floor-btn-${fId}`).classList.add('active');
+        if (state.viewMode === 'solo') {
+          updateFloorTransforms();
+        } else {
+          // Frame target floor
+          const idx = FLOOR_DATA.findIndex(f => f.id === fId);
+          controls.target.set(0, FLOOR_DATA[idx].baseY + 4, 0);
+        }
+      });
+    });
+
+    // View Modes
+    document.getElementById('mode-assembled-btn').addEventListener('click', () => {
+      state.viewMode = 'assembled';
+      state.floorSpacing = 0;
+      document.getElementById('spacing-slider').value = 0;
+      document.getElementById('spacing-val-text').textContent = '0 m';
+      document.querySelectorAll('.btn-toggle').forEach(el => el.classList.remove('active'));
+      document.getElementById('mode-assembled-btn').classList.add('active');
+      updateFloorTransforms();
+    });
+
+    document.getElementById('mode-exploded-btn').addEventListener('click', () => {
+      state.viewMode = 'exploded';
+      state.floorSpacing = 12;
+      document.getElementById('spacing-slider').value = 12;
+      document.getElementById('spacing-val-text').textContent = '12 m';
+      document.querySelectorAll('.btn-toggle').forEach(el => el.classList.remove('active'));
+      document.getElementById('mode-exploded-btn').classList.add('active');
+      updateFloorTransforms();
+    });
+
+    document.getElementById('mode-solo-btn').addEventListener('click', () => {
+      state.viewMode = 'solo';
+      document.querySelectorAll('.btn-toggle').forEach(el => el.classList.remove('active'));
+      document.getElementById('mode-solo-btn').classList.add('active');
+      updateFloorTransforms();
+    });
+
+    document.getElementById('spacing-slider').addEventListener('input', (e) => {
+      state.floorSpacing = parseFloat(e.target.value);
+      document.getElementById('spacing-val-text').textContent = `${state.floorSpacing} m`;
+      if (state.viewMode !== 'exploded' && state.floorSpacing > 0) {
+        state.viewMode = 'exploded';
+        document.querySelectorAll('.btn-toggle').forEach(el => el.classList.remove('active'));
+        document.getElementById('mode-exploded-btn').classList.add('active');
+      }
+      updateFloorTransforms();
+    });
+
+    // Roof Toggle
+    document.getElementById('roof-toggle-btn').addEventListener('click', () => {
+      if (state.roofState === 'visible') {
+        state.roofState = 'faded';
+        roofGroup.traverse(child => {
+          if (child.material) {
+            child.material.transparent = true;
+            child.material.opacity = 0.25;
+          }
+        });
+        document.getElementById('roof-status-text').textContent = 'Faded';
+      } else if (state.roofState === 'faded') {
+        state.roofState = 'hidden';
+        roofGroup.visible = false;
+        document.getElementById('roof-status-text').textContent = 'Hidden';
+      } else {
+        state.roofState = 'visible';
+        roofGroup.visible = true;
+        roofGroup.traverse(child => {
+          if (child.material) {
+            child.material.transparent = false;
+            child.material.opacity = 1.0;
+          }
+        });
+        document.getElementById('roof-status-text').textContent = 'Visible';
+      }
+    });
+
+    // Façade Glass Toggle
+    document.getElementById('glass-toggle-btn').addEventListener('click', () => {
+      if (state.glassState === 'tinted') {
+        state.glassState = 'transparent';
+        document.getElementById('glass-status-text').textContent = 'Clear';
+        setGlassOpacity(0.08);
+      } else if (state.glassState === 'transparent') {
+        state.glassState = 'hidden';
+        document.getElementById('glass-status-text').textContent = 'Off';
+        setGlassVisible(false);
+      } else {
+        state.glassState = 'tinted';
+        document.getElementById('glass-status-text').textContent = 'Tinted';
+        setGlassVisible(true);
+        setGlassOpacity(0.28);
+      }
+    });
+
+    function setGlassOpacity(op) {
+      FLOOR_DATA.forEach(floor => {
+        if (floorMeshes[floor.id]) {
+          floorMeshes[floor.id].glass.forEach(mesh => {
+            mesh.visible = true;
+            mesh.material.opacity = op;
+          });
+        }
+      });
+    }
+
+    function setGlassVisible(vis) {
+      FLOOR_DATA.forEach(floor => {
+        if (floorMeshes[floor.id]) {
+          floorMeshes[floor.id].glass.forEach(mesh => {
+            mesh.visible = vis;
+          });
+        }
+      });
+    }
+
+    // Reset Camera
+    document.getElementById('reset-cam-btn').addEventListener('click', () => {
+      camera.position.set(70, 75, 100);
+      controls.target.set(0, 16, 0);
+      controls.update();
+    });
+
+    // Resize handling
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /* =========================================================================
+       6. RENDER & SIMULATION LOOP
+       ========================================================================= */
+    buildCampus();
+    buildFloors();
+    refreshRoute();
+
+    let lastTime = performance.now();
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      // Frame-rate independent delta calculation with clamping
+      const rawDelta = (time - lastTime) / 1000;
+      lastTime = time;
+      const delta = Math.min(rawDelta, 0.1); // Clamp after tab suspension
+
+      // Route playback update
+      if (state.simRunning && state.currentRoute && state.currentRoute.totalMeters > 0) {
+        // Assume walking speed ~1.4 m/s * speed multiplier
+        const progressIncrement = (1.4 * state.simSpeed * delta) / state.currentRoute.totalMeters;
+        state.simProgress += progressIncrement;
+
+        if (state.simProgress >= 1.0) {
+          state.simProgress = 1.0;
+          state.simRunning = false;
+          document.getElementById('play-btn-text').textContent = 'Restart';
+        }
+        updateWalkerPosition(state.simProgress);
+      }
+
+      // Animate walker pulsating halo ring
+      if (walkerHalo) {
+        const s = 1.0 + Math.sin(time * 0.005) * 0.25;
+        walkerHalo.scale.set(s, s, s);
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate(performance.now());
+  </script>
+</body>
+</html>
