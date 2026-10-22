@@ -1,88 +1,185 @@
-# CareerIQ (Aurora Light edition): Student Placement and Career Recommendation Using R
+# CareerIQ – Student Placement Prediction & Career Recommendation
 
-100% R: Shiny + shinydashboard, ggplot2 + plotly, DT, dplyr/tidyr, glm / rpart / randomForest (+ optional xgboost).
-Only the *motion* (animations) lives in `www/custom.css` and `www/custom.js`; all logic and UI are R.
+CareerIQ is an R-based intelligent career guidance system that predicts student placement probability, recommends suitable career domains, identifies skill gaps, and provides personalized improvement plans through an interactive R Shiny dashboard.
 
-## What is new in this edition
-
-**Look and motion**
-- Light "aurora" theme: glass cards, drifting gradient background, Plus Jakarta Sans font (needs internet; falls back to system fonts offline)
-- Splash screen, sliding sidebar pill, direction-aware page transitions (pages slide forward or back)
-- Staggered rise-in of cards and list items, animated ring gauge, animated progress bars with a shine sweep
-- Count-up numbers (they animate from the previous value when you move a slider), 3-D tilt on career cards, hero spotlight that follows the mouse
-- Button ripple, pulsing Predict button, confetti when placement probability is 70% or more, toast notifications, shimmer while charts recalculate
-- Respects "reduce motion" system settings
-
-**New features**
-| Feature | Where |
-|---|---|
-| Load any dataset student into the form | Student Prediction |
-| Tabbed pill form with sliders (Academic / Skills / Experience / Soft skills) | Student Prediction |
-| Readiness level (Getting Started to Placement Star) and percentile vs all students | Student Prediction |
-| Skill radar vs benchmark | Prediction, Skill Gap |
-| One-page HTML report download | Student Prediction |
-| 12-week animated roadmap + tools to learn for each top career | Career Recommendation |
-| 9-domain radar and ranked animated bars | Career Recommendation |
-| "Top 3 moves": every gap ranked by probability gain if closed | Skill Gap Analysis |
-| Scenario presets (Code sprint, Experience push, Academic focus, All-rounder) | What-If Simulator |
-| Goal Planner: shortest realistic route to a target probability | Goal Planner (new page) |
-| Percentile ranks, you vs department, 15 most similar students | Peer Insights (new page) |
-| Expected package (random-forest regression), k-means student personas, risk watch, AI coach summary, list of AI/ML techniques | AI Insights (new page) |
-| Effort-aware Goal Planner: set a target, weeks available and a focus (Balanced / Academics / Skills / Experience). It ranks improvements by probability gain per week, shows a week-by-week route, total effort, and how many weeks the full target needs. If you are already above target it builds a stretch plan and a risk watch | Goal Planner |
-| New department AI&ML (dataset regenerated and model retrained) | everywhere |
-| Department filter on all charts, CSV download, live KPIs | Analytics, Dataset Explorer |
-| Viva Q&A accordion | About |
-
-Your existing `models/trained_model.rds` and `student_data.csv` are included and fully compatible. No re-training is needed.
-
-## Folder structure
+## Project Structure
 
 ```
 CareerIQ/
-├── app.R                      Shiny UI + server (12 pages)
-├── install_packages.R         one-time package installation
-├── helper_functions.R         constants, feature metadata, validation, ggplot theme (light palette)
-├── generate_dataset.R         creates student_data.csv (800 students)
-├── data_preprocessing.R       load, clean, stratified split, single-student input builder
-├── recommendation_engine.R    career top-3, skill gaps, advice, predict + local explanation
-├── model_training.R           trains/compares models, selects best, saves the model
-├── plot_functions.R           ggplot2 charts + native plotly radar charts
-├── career_content.R     NEW   roadmaps and tools for each career domain
-├── insights.R           NEW   percentile, readiness, gap payoff, similar students, goal planner, report,
-│                              package regression, k-means personas, risk watch, coach summary
-├── ui_components.R      NEW   KPI cards, ring gauge, animated bars, timeline builders
-├── student_data.csv
-├── models/trained_model.rds
-└── www/custom.css, custom.js  NEW motion and theme
+├── app.R                     # Main Shiny application
+├── install_packages.R        # Required package installation
+├── generate_dataset.R        # Generate sample student dataset
+├── data_preprocessing.R      # Data cleaning and preprocessing
+├── model_training.R          # Train and evaluate ML models
+├── recommendation_engine.R   # Career and skill recommendations
+├── helper_functions.R        # Shared functions and validation
+├── insights.R                # Prediction insights and goal planning
+├── plot_functions.R          # Charts and visualizations
+├── career_content.R          # Career roadmap content
+├── ui_components.R           # Dashboard UI components
+├── student_data.csv          # Student dataset
+├── models/
+│   └── trained_model.rds     # Pretrained placement model
+└── www/
+    ├── custom.css            # Dashboard styling
+    └── custom.js             # UI animations
 ```
 
-## Run in RStudio
+## Requirements
 
-```r
-setwd("C:/path/to/CareerIQ")          # 1. set working directory (use forward slashes)
-source("install_packages.R")          # 2. install packages (once)
-shiny::runApp()                       # 3. launch the dashboard
+Before running CareerIQ, install:
+
+- R programming language
+- RStudio (recommended) or VS Code with R support
+- A modern web browser
+- Internet connection for the initial package installation
+
+### Required R Packages
+
+- shiny
+- shinydashboard
+- dplyr
+- tidyr
+- tibble
+- ggplot2
+- scales
+- plotly
+- DT
+- randomForest
+- rpart
+
+Optional package: `xgboost`
+
+## Development Setup
+
+### Step 1 – Clone the Repository
+
 ```
-The CSV and model are already included (retrained with the AI&ML department; run `source("model_training.R")` yourself if you want XGBoost included too). Only run `source("generate_dataset.R")` and
-`source("model_training.R")` if you want to regenerate or retrain.
+git clone https://github.com/aakifh127-dot/PROJECTS.git
+```
 
-Pages 3 and 4 (Career, Skill Gap) need you to click **Predict Placement** once on page 2.
-What-If, Goal Planner and Peer Insights work straight from the sliders on page 2.
+Open the `CareerIQ` folder inside the downloaded repository.
 
-## Common errors and solutions
+### Step 2 – Open RStudio
 
-| Problem | Solution |
-|---|---|
-| `cannot open file 'helper_functions.R'` | Wrong working directory. Run `setwd(...)`, check with `getwd()`. |
-| `there is no package called 'xxx'` | Run `source("install_packages.R")`. |
-| Red "Setup problem" box on Home | `student_data.csv` or `models/trained_model.rds` is missing. Regenerate/retrain. |
-| `Model file is outdated` | Re-run `source("model_training.R")`. |
-| XGBoost skipped | Optional. The app now starts even if xgboost is missing (that one model is just hidden). |
-| Animations look plain / unstyled | Hard-refresh the browser (Ctrl+F5) so the new CSS/JS load. |
-| Port already in use | `shiny::runApp(port = 5050)`. |
+Open RStudio and set the working directory to the CareerIQ project folder.
 
-## Viva preparation
-The answers are built into the **About Project** page (accordion). Extra points to mention:
-- **Gap payoff:** for each skill below benchmark, the model is re-run with that skill set to the benchmark, so gaps are ranked by real probability gain.
-- **Goal Planner:** greedy search; each step takes the single realistic improvement with the largest gain, with caps so no skill jumps unrealistically.
-- **Honest limitation:** the dataset is synthetic and career weights are expert rules, not learned from outcomes.
+```
+setwd("C:/path/to/PROJECTS/CareerIQ")
+```
+
+Alternatively, open the CareerIQ folder as an RStudio Project or set it as your working directory using the RStudio interface.
+
+### Step 3 – Install Required Packages
+
+Run this command in the R console:
+
+```
+source("install_packages.R")
+```
+
+This automatically installs the required R packages if they are missing.
+
+### Step 4 – Launch CareerIQ
+
+```
+shiny::runApp()
+```
+
+The CareerIQ dashboard will launch in RStudio's viewer or a web browser.
+
+To open it on a specified port:
+
+```
+shiny::runApp(port = 5050)
+```
+
+Then visit:
+
+`http://localhost:5050`
+
+## Optional – Dataset Generation
+
+A sample dataset is already included.
+
+To regenerate the dataset:
+
+```
+source("generate_dataset.R")
+```
+
+## Optional – Model Training
+
+A pretrained model is included in `models/trained_model.rds`.
+
+To retrain the machine learning models:
+
+```
+source("model_training.R")
+```
+
+Retrain the model after changing or regenerating the dataset.
+
+## Machine Learning Methods
+
+CareerIQ uses:
+
+- Logistic Regression
+- Decision Tree
+- Random Forest
+- Optional XGBoost
+- K-Means Clustering
+- Weighted Career Recommendation
+- Skill Gap Analysis
+
+## Main Features
+
+- Student placement probability prediction
+- Career domain recommendations
+- Skill gap identification
+- Personalized improvement suggestions
+- Interactive What-If Simulator
+- Career Goal Planner
+- Peer comparison and insights
+- Interactive analytics dashboard
+- Model performance evaluation
+- Downloadable student reports
+
+## Troubleshooting
+
+| Problem                   | Solution                                  |
+| ------------------------- | ----------------------------------------- |
+| Missing R package         | Run `source("install_packages.R")`        |
+| Dataset not found         | Check `student_data.csv` or regenerate it |
+| Model not found           | Run `source("model_training.R")`          |
+| File sourcing error       | Verify the working directory              |
+| Port already in use       | Use `shiny::runApp(port = 5050)`          |
+| Dashboard styling missing | Confirm the `www` folder exists           |
+
+## Note
+
+CareerIQ currently uses a synthetic student dataset for academic demonstration. Placement predictions and career recommendations are educational estimates, not guaranteed real-world outcomes.
+
+## Quick setup for your GitHub visitors
+
+You can also place just this short version near the beginning of your README, like HavNav:
+
+Development Setup
+
+Requirements: R, RStudio and required R packages.
+
+```
+source("install_packages.R")
+shiny::runApp()
+```
+
+Optional checks:
+
+```
+source("generate_dataset.R")
+source("model_training.R")
+```
+
+The first two commands are sufficient when using the sample dataset and pretrained model included in your uploaded CareerIQ ZIP.
+
+Important: Keep `app.R`, the supporting R files, `student_data.csv`, `models/` and `www/` together inside the `CareerIQ` folder when uploading to GitHub. Your application uses relative file paths, so separating them could prevent it from running.
